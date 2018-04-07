@@ -1,7 +1,7 @@
 /*License Info: (c) Mike "Boff" Harratt 2018
 Some Rights Reserved - Available under Attribution-NonCommercial-ShareAlike 4.0 International License
 
-Basically, you can remix and edit this for non-commerical purposes i.e. making your own for yourself but not for sale then files you make changes to must be available under the same license.
+Basically, you can remix, distribute and edit this for non-commerical purposes (i.e. making your own for yourself but not for sale) Any files you make changes to /must/ be available under the same license.
 
 Parts list:
 Power Ram:
@@ -24,13 +24,33 @@ BT4_LENGTH = 49.25;
 BT4_TOP_DIAMETER = 23.21;
 BT4_BOTTOM_DIAMETER = 22.5;
 
+STROKE_LENGTH = 38; //Total stroke length in mm
+
+//Master Wall Thickness
+//Set the master wall thickness for the blaster
+SWT = 3; //Standard wall thickness
+NWT = 1.5; //Narrow wall thickness
+
+//Power Tube Dimensions
 POWER_TUBE_ALU_OD = 10;
+POWER_TUBE_ALU_ID = 8;
+
+//Dart Pusher Dimensions
+DART_PUSHER_ALU_OD = 12;
+DART_PUSHER_ALU_ID = 10;
+DART_PUSHER_CHAMFER = 2;
+
+if(DART_PUSHER_ALU_ID != POWER_TUBE_ALU_OD) echo("WARNING! Power tube and dart pusher should nest!");
+
+//Pusher Arm Dimensions
+PUSHER_ARM_WIDTH = NWT * 2;
+PUSHER_ARM_HEIGHT = NWT;
 
 /*
 Master Bolt Types:
 Allows you to pre-select the type of bolt used by default in each of the areas
--> Master Strutucal Bolt is the main construction bolt defaults to M3
--> Power Tube Bolt is the nuts and bolts used in the power tube, defaults to M2
+-> Master Strutucal Bolt is the main construction bolt; defaults to M3
+-> Power Tube Bolt is the nuts and bolts used in the power tube; defaults to M2
 
 -> BOLT_TYPE Arguements are as follows: 
 --> HEX | CSK | RAISEDCSK | PANHEAD | CHEESEHEAD | CAPSCREW | CSKSOCKETSCREW
@@ -53,6 +73,7 @@ MSB_NUT_TYPE = "NYLOC";
 //Power Ram Tube Configuration
 POWER_RAM_OD = 32;
 POWER_RAM_WALL = 2;
+POWER_RAM_ID = POWER_RAM_OD - POWER_RAM_WALL;
 
 //Interface (Power Tube Clamp to Forward Power Tube) O Ring Dimensons
 INTERFACE_O_RING_THICKNESS = 1.5;
@@ -63,11 +84,19 @@ POWER_TUBE_O_RING_THICKNESS = 2;
 POWER_TUBE_O_RING_DIAMETER = 10;
 NUMBER_POWER_TUBE_O_RINGS = 2;
 
+//Dart Pusher Collar Configuration
+DART_PUSHER_COLLAR_O_RING_THICKNESS = 2;
+DART_PUSHER_COLLAR_O_RING_DIAMETER = DART_PUSHER_ALU_OD + DART_PUSHER_COLLAR_O_RING_THICKNESS / 0.5;
+NUMBER_POWER_TUBE_O_RINGS = 1;
 
-//Master Wall Thickness
-//Set the master wall thickness for the blaster
-SWT = 3; //Standard wall thickness
-NWT = 1.5; //Narrow wall thickness
+DART_PUSHER_COLLAR_OD = DART_PUSHER_ALU_OD + SWT * 2;
+DART_PUSHER_COLLAR_ID = DART_PUSHER_ALU_OD;
+DART_PUSHER_COLLAR_HEIGHT = PTB_THREAD * 2 + SWT ;
+
+// Rear Piston Variables
+REAR_PISTON_DIAMETER = BT4_TOP_DIAMETER  - 0.5;
+REAR_PISTON_O_RING_THICKNESS = 2;
+REAR_PISTON_O_RING_DIAMETER = 15;
 
 module BT4_Geometry()
 {
@@ -181,7 +210,9 @@ module Forward_Power_Tube()
 
 module Power_Tube_Clamp()
 {
-       
+    //Basic geometry for the power tube clamp - this is the basic element that will allow you to then add
+    //nut traps and bolt holes to the completed piece to be locked in place
+    //To Do: Conisder adding flared interface collar to interface with the Forward Power Tube module
     O_RING_COLLAR_HEIGHT = INTERFACE_O_RING_THICKNESS + SWT * 2;
     POWER_TUBE_O_RING_COLUMN_HEIGHT = (SWT * 2 + POWER_TUBE_O_RING_THICKNESS) * NUMBER_POWER_TUBE_O_RINGS;
     
@@ -239,6 +270,84 @@ module Power_Tube_Clamp()
             cube([POWER_TUBE_CLAMP_DIAMETER, POWER_TUBE_CLAMP_DIAMETER, POWER_TUBE_CLAMP_HEIGHT]);
         }
         
+    }
+    
+}
+
+
+module Dart_Pusher()
+{
+    //Secured to Dart Pusher Collar 
+    
+    DART_PUSHER_LENGTH = STROKE_LENGTH + DART_PUSHER_COLLAR_HEIGHT;
+    
+    difference()
+    {
+        union()
+        {
+            cylinder(d = DART_PUSHER_ALU_OD, h = DART_PUSHER_LENGTH - DART_PUSHER_CHAMFER);
+            
+            translate([0, 0, DART_PUSHER_LENGTH - DART_PUSHER_CHAMFER])
+            {
+                cylinder(d1 = DART_PUSHER_ALU_OD, d2 = DART_PUSHER_ALU_ID, h = DART_PUSHER_CHAMFER);
+            }
+        }
+        
+        cylinder(d = DART_PUSHER_ALU_ID , h = DART_PUSHER_LENGTH);
+        
+        //Collar O Ring Groove
+        translate([0, 0, DART_PUSHER_COLLAR_HEIGHT / 2])
+        {
+            torus(DART_PUSHER_ALU_OD, POWER_TUBE_O_RING_THICKNESS);
+        }
+        
+    }
+    
+}
+
+module Dart_Pusher_Collar()
+{
+    //Basic geometry for the dart pusher collar, secured to the dart pusher using O ring and narrow bolts
+        
+    difference()
+    {
+        cylinder(d = DART_PUSHER_COLLAR_OD, h = DART_PUSHER_COLLAR_HEIGHT);
+        
+        //Aluminium hole geometry
+        cylinder(d = DART_PUSHER_ALU_ID, h = DART_PUSHER_COLLAR_HEIGHT);
+        
+        //Securing Bolt Holes
+        for(i = [0 : 1 : 1])
+        {
+            mirror([i, 0, 0])
+            {
+                translate([DART_PUSHER_COLLAR_OD / 2 - NWT, (DART_PUSHER_COLLAR_OD / 2), DART_PUSHER_COLLAR_HEIGHT / 2])
+                {
+                    rotate([90, 90, 0])
+                    {
+                        cylinder(d = PTB_THREAD, h = DART_PUSHER_COLLAR_OD);
+                    }
+                }
+            }
+        }
+        
+        //Pusher Arm Cut Out
+        translate([DART_PUSHER_COLLAR_OD - DART_PUSHER_COLLAR_ID, -PUSHER_ARM_WIDTH / 2, 0])
+        {
+            cube([DART_PUSHER_COLLAR_OD, PUSHER_ARM_WIDTH, DART_PUSHER_COLLAR_HEIGHT]);
+        }
+            
+        //O Ring Groove
+        translate([0, 0, DART_PUSHER_COLLAR_HEIGHT / 2])
+        {
+            torus(POWER_TUBE_O_RING_DIAMETER, POWER_TUBE_O_RING_THICKNESS);
+        }
+        
+        //Halving Cube
+        translate([-DART_PUSHER_COLLAR_OD / 2, 0, 0])
+        {
+            cube([DART_PUSHER_COLLAR_OD, DART_PUSHER_COLLAR_OD, DART_PUSHER_COLLAR_HEIGHT]);
+        }
     }
     
 }
@@ -377,10 +486,6 @@ module Bolt_Thread(Z, THREAD_SIZE, THREAD_LENGTH)
     }
 }
 
-// Rear Piston Variables
-REAR_PISTON_DIAMETER = BT4_TOP_DIAMETER  - 0.5;
-REAR_PISTON_O_RING_THICKNESS = 2;
-REAR_PISTON_O_RING_DIAMETER = 15;
 
 module Rear_Piston_Head()
 {
@@ -393,4 +498,6 @@ module Rear_Piston_Head()
 
 //Rear_Piston_Head();
 //Forward_Power_Tube();
-Power_Tube_Clamp();
+//Power_Tube_Clamp();
+//Dart_Pusher_Collar();
+Dart_Pusher();
