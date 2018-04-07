@@ -12,12 +12,36 @@ Power Ram:
 >> Piston core w/bolt hole
 >> O-Ring collar
 >> Piston body w/sear cut out
-> Actuator Arm
+> Pusher Arm
 > 
 
 */
 
-//$fn = 128;
+$fn = 128;
+
+/*
+Master Bolt Types:
+Allows you to pre-select the type of bolt used by default in each of the areas
+-> Master Strutucal Bolt is the main construction bolt; defaults to M3
+-> Power Tube Bolt is the nuts and bolts used in the power tube; defaults to M2
+
+-> BOLT_TYPE Arguements are as follows: 
+--> HEX | CSK | RAISEDCSK | PANHEAD | CHEESEHEAD | CAPSCREW | CSKSOCKETSCREW
+
+-> NUT_TYPE Arguments are as follows:
+--> NORMAL | NYLOC
+
+*/
+
+//Master Structural Bolt Configuration
+MSB_THREAD = 3;
+MSB_TYPE = "CAPSCREW";
+MSB_NUT_TYPE = "NYLOC";
+
+//Power Tube Bolt Configuration
+PTB_THREAD = 2;
+PTB_TYPE = "PANHEAD";
+PTB_NUT_TYPE = "NYLOC";
 
 //Global Variables
 BT4_LENGTH = 49.25;
@@ -46,30 +70,6 @@ if(DART_PUSHER_ALU_ID != POWER_TUBE_ALU_OD) echo("WARNING! Power tube and dart p
 PUSHER_ARM_WIDTH = NWT * 2;
 PUSHER_ARM_HEIGHT = NWT;
 
-/*
-Master Bolt Types:
-Allows you to pre-select the type of bolt used by default in each of the areas
--> Master Strutucal Bolt is the main construction bolt; defaults to M3
--> Power Tube Bolt is the nuts and bolts used in the power tube; defaults to M2
-
--> BOLT_TYPE Arguements are as follows: 
---> HEX | CSK | RAISEDCSK | PANHEAD | CHEESEHEAD | CAPSCREW | CSKSOCKETSCREW
-
--> NUT_TYPE Arguments are as follows:
---> NORMAL | NYLOC
-
-*/
-
-//Master Structural Bolt Configuration
-MSB_THREAD = 3;
-MSB_BOLT_TYPE = "CAPSCREW";
-MSB_BOLT_TYPE = "NYLOC";
-
-//Power Tube Bolt Configuration
-PTB_THREAD = 2;
-MSB_BOLT_TYPE = "PANHEAD";
-MSB_NUT_TYPE = "NYLOC";
-
 //Power Ram Tube Configuration
 POWER_RAM_OD = 32;
 POWER_RAM_WALL = 2;
@@ -97,6 +97,8 @@ DART_PUSHER_COLLAR_HEIGHT = PTB_THREAD * 2 + SWT ;
 REAR_PISTON_DIAMETER = BT4_TOP_DIAMETER  - 0.5;
 REAR_PISTON_O_RING_THICKNESS = 2;
 REAR_PISTON_O_RING_DIAMETER = 15;
+
+
 
 module BT4_Geometry()
 {
@@ -305,10 +307,10 @@ module Dart_Pusher()
     
 }
 
-module Dart_Pusher_Collar()
+module Dart_Pusher_Collar(TRAPS)
 {
     //Basic geometry for the dart pusher collar, secured to the dart pusher using O ring and narrow bolts
-        
+    echo(TRAPS);    
     difference()
     {
         cylinder(d = DART_PUSHER_COLLAR_OD, h = DART_PUSHER_COLLAR_HEIGHT);
@@ -320,9 +322,34 @@ module Dart_Pusher_Collar()
         for(i = [0 : 1 : 1])
         {
             mirror([i, 0, 0])
-            {
+            {                  
                 translate([DART_PUSHER_COLLAR_OD / 2 - NWT, (DART_PUSHER_COLLAR_OD / 2), DART_PUSHER_COLLAR_HEIGHT / 2])
                 {
+                    
+                    if(TRAPS == 0)
+                    {
+                        //Code for bolt caps
+                        translate([0, -DART_PUSHER_COLLAR_OD + SWT * 1.5, 0])
+                        {
+                            rotate([90, 0, 0])
+                            {
+                               cylinder(d = PTB_THREAD * 2, h = DART_PUSHER_COLLAR_OD);
+                            }
+                        }
+                    }
+                    
+                    if(TRAPS == 1)
+                    {
+                        //Code for nut traps
+                        translate([0, -DART_PUSHER_COLLAR_OD - SWT * 1.5, 0])
+                        {
+                            rotate([90, 90, 0])
+                            {
+                                hexagon(PTB_THREAD * 2, DART_PUSHER_COLLAR_OD);
+                            }
+                        }
+                    }
+                    
                     rotate([90, 90, 0])
                     {
                         cylinder(d = PTB_THREAD, h = DART_PUSHER_COLLAR_OD);
@@ -347,9 +374,33 @@ module Dart_Pusher_Collar()
         translate([-DART_PUSHER_COLLAR_OD / 2, 0, 0])
         {
             cube([DART_PUSHER_COLLAR_OD, DART_PUSHER_COLLAR_OD, DART_PUSHER_COLLAR_HEIGHT]);
-        }
+        }        
     }
     
+}
+
+module Dart_Pusher_Collar_Tray()
+{
+    //Provides a pair of pusher collars complete with appropriate nut and cap traps
+    
+    TRAY_SPACE = 5; //Distance between objects on the printer tray
+    
+    difference()
+    {
+        union()
+        {
+            for(i = [0 : 1])
+            {
+                translate([0, i * TRAY_SPACE, 0])
+                {
+                    mirror([0, i, 0])
+                    {
+                        Dart_Pusher_Collar(i);
+                    }
+                }
+            }
+        }
+    }
 }
 
 module torus(d, t)
@@ -499,5 +550,4 @@ module Rear_Piston_Head()
 //Rear_Piston_Head();
 //Forward_Power_Tube();
 //Power_Tube_Clamp();
-//Dart_Pusher_Collar();
-Dart_Pusher();
+Dart_Pusher_Collar_Tray();
