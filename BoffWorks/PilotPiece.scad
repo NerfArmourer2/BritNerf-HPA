@@ -17,7 +17,7 @@ Power Ram:
 
 */
 
-$fn = 128;
+//$fn = 128;
 
 /*
 Master Bolt Types:
@@ -48,7 +48,7 @@ BT4_LENGTH = 49.25;
 BT4_TOP_DIAMETER = 23.21;
 BT4_BOTTOM_DIAMETER = 22.5;
 
-STROKE_LENGTH = 38; //Total stroke length in mm
+STROKE_LENGTH = 42; //Total stroke length in mm
 
 //Master Wall Thickness
 //Set the master wall thickness for the blaster
@@ -73,7 +73,9 @@ PUSHER_ARM_HEIGHT = NWT;
 //Power Ram Tube Configuration
 POWER_RAM_OD = 32;
 POWER_RAM_WALL = 2;
-POWER_RAM_ID = POWER_RAM_OD - POWER_RAM_WALL;
+POWER_RAM_ID = POWER_RAM_OD - POWER_RAM_WALL * 2;
+POWER_RAM_O_RING_THICKNESS = 2;
+POWER_RAM_NUMBER_OF_O_RINGS = 1; //TO DO: Implement number of features
 
 //Interface (Power Tube Clamp to Forward Power Tube) O Ring Dimensons
 INTERFACE_O_RING_THICKNESS = 1.5;
@@ -87,7 +89,7 @@ NUMBER_POWER_TUBE_O_RINGS = 2;
 //Dart Pusher Collar Configuration
 DART_PUSHER_COLLAR_O_RING_THICKNESS = 2;
 DART_PUSHER_COLLAR_O_RING_DIAMETER = DART_PUSHER_ALU_OD + DART_PUSHER_COLLAR_O_RING_THICKNESS / 0.5;
-NUMBER_POWER_TUBE_O_RINGS = 1;
+NUMBER_DART_PUSHER_O_RINGS = 1;
 
 DART_PUSHER_COLLAR_OD = DART_PUSHER_ALU_OD + SWT * 2;
 DART_PUSHER_COLLAR_ID = DART_PUSHER_ALU_OD;
@@ -122,6 +124,7 @@ module Forward_Power_Tube()
     PISTON_HEAD_REST_Z_LINE = VALVE_COLLAR_Z_LINE + BT4_LENGTH;
     REAR_PISTON_COLLAR_Z_LINE = PISTON_HEAD_REST_Z_LINE + PISTON_HEAD_REST_THICKNESS;
     
+    echo(REAR_PISTON_COLLAR_Z_LINE);
     
     difference()
     {
@@ -155,8 +158,7 @@ module Forward_Power_Tube()
                 cylinder(d = SWT + BT4_TOP_DIAMETER, h = POWER_TUBE_CHAMFER_THICKNESS);
             }
             
-            //Bracing geometry
-                        
+            //Bracing geometry                        
             BRACE_OD = POWER_RAM_OD - POWER_RAM_WALL;
             BRACE_ID = SWT + BT4_TOP_DIAMETER;
             
@@ -210,17 +212,19 @@ module Forward_Power_Tube()
 }
 
 
-module Power_Tube_Clamp()
+module Power_Tube_Clamp(TRAPS)
 {
     //Basic geometry for the power tube clamp - this is the basic element that will allow you to then add
     //nut traps and bolt holes to the completed piece to be locked in place
     //To Do: Conisder adding flared interface collar to interface with the Forward Power Tube module
     O_RING_COLLAR_HEIGHT = INTERFACE_O_RING_THICKNESS + SWT * 2;
     POWER_TUBE_O_RING_COLUMN_HEIGHT = (SWT * 2 + POWER_TUBE_O_RING_THICKNESS) * NUMBER_POWER_TUBE_O_RINGS;
-    
+            
     POWER_TUBE_CLAMP_HEIGHT = O_RING_COLLAR_HEIGHT + POWER_TUBE_O_RING_COLUMN_HEIGHT;
     POWER_TUBE_CLAMP_DIAMETER = POWER_TUBE_ALU_OD + (SWT * 2);
-
+    
+    echo(POWER_TUBE_CLAMP_HEIGHT);
+    
     difference()
     {
         //Main Clamp Body
@@ -262,7 +266,34 @@ module Power_Tube_Clamp()
                     {
                         cylinder(d = PTB_THREAD, h = POWER_TUBE_CLAMP_DIAMETER);
                     }
+                    
+                    if(TRAPS == 0)
+                    {
+                        //Code for bolt caps
+                        translate([0, -DART_PUSHER_COLLAR_OD + SWT * 1.5, 0])
+                        {
+                            rotate([90, 0, 0])
+                            {
+                               cylinder(d = PTB_THREAD * 2, h = DART_PUSHER_COLLAR_OD);
+                            }
+                        }
+                    }
+                    
+                    if(TRAPS == 1)
+                    {
+                        //Code for nut traps
+                        translate([0, -DART_PUSHER_COLLAR_OD - SWT, 0])
+                        {
+                            rotate([90, 90, 0])
+                            {
+                                hexagon(PTB_THREAD * 2, DART_PUSHER_COLLAR_OD);
+                            }
+                        }
+                    }
+                    
                 }
+                
+               
             }
         }
         
@@ -270,6 +301,65 @@ module Power_Tube_Clamp()
         translate([-POWER_TUBE_CLAMP_DIAMETER / 2, 0, 0])
         {
             cube([POWER_TUBE_CLAMP_DIAMETER, POWER_TUBE_CLAMP_DIAMETER, POWER_TUBE_CLAMP_HEIGHT]);
+        }
+        
+    }
+    
+}
+
+module Power_Tube_Clamp_Tray()
+{
+    //Provides a pair of pusher collars complete with appropriate nut and cap traps
+    
+    TRAY_SPACE = 20; //Distance between objects on the printer tray
+    
+    difference()
+    {
+        union()
+        {
+            for(i = [0 : 1])
+            {
+                translate([i * TRAY_SPACE, 0, 0])
+                {
+                    mirror([i, 0, 0])
+                    {
+                        Power_Tube_Clamp(i);
+                    }
+                }
+            }
+        }
+    }
+}
+
+module Power_Ram_Front_Cap()
+{
+    
+    difference()
+    {
+        union()
+        {
+            POWER_RAM_FRONT_CAP_OD = POWER_RAM_OD + SWT;
+            echo(POWER_RAM_FRONT_CAP_OD);
+            cylinder(d = POWER_RAM_FRONT_CAP_OD, h = SWT);
+            
+            //
+            translate([0, 0, SWT])
+            {
+                square_torus(POWER_RAM_ID, POWER_RAM_WALL, SWT);
+            }
+        }
+        
+        cylinder(d = DART_PUSHER_ALU_OD, h =  SWT);
+        
+        //Power Ram Pipe Groove
+        translate([0, 0, SWT - POWER_RAM_WALL])
+        {
+            square_torus(POWER_RAM_ID + SWT, POWER_RAM_WALL, POWER_RAM_WALL * 4);
+        }
+        
+        translate([0, 0, SWT + (SWT / 2)])
+        {
+            torus(POWER_RAM_ID + 1, POWER_RAM_O_RING_THICKNESS);
         }
         
     }
@@ -310,9 +400,10 @@ module Dart_Pusher()
 module Dart_Pusher_Collar(TRAPS)
 {
     //Basic geometry for the dart pusher collar, secured to the dart pusher using O ring and narrow bolts
-    echo(TRAPS);    
+       
     difference()
     {
+        echo(DART_PUSHER_COLLAR_OD); 
         cylinder(d = DART_PUSHER_COLLAR_OD, h = DART_PUSHER_COLLAR_HEIGHT);
         
         //Aluminium hole geometry
@@ -379,6 +470,7 @@ module Dart_Pusher_Collar(TRAPS)
     
 }
 
+
 module Dart_Pusher_Collar_Tray()
 {
     //Provides a pair of pusher collars complete with appropriate nut and cap traps
@@ -410,6 +502,19 @@ module torus(d, t)
         translate([d / 2, 0, 0])
         {
             circle(r = t/2);
+        }
+    }
+}
+
+module square_torus(d, t1, t2)
+{
+    if(t2 == 0) {t2 = t1;};
+    
+    rotate_extrude(angle = 360, convexity = 10)
+    {
+        translate([d / 2 - t1 / 2, 0, 0])
+        {
+            square([t1, t2]);
         }
     }
 }
@@ -548,6 +653,7 @@ module Rear_Piston_Head()
 }
 
 //Rear_Piston_Head();
-//Forward_Power_Tube();
-//Power_Tube_Clamp();
-Dart_Pusher_Collar_Tray();
+Forward_Power_Tube();
+//Power_Tube_Clamp_Tray();
+//Dart_Pusher_Collar_Tray();
+//Power_Ram_Front_Cap();
