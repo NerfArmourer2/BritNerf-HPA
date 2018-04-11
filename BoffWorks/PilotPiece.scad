@@ -47,6 +47,7 @@ PTB_NUT_TYPE = "NYLOC";
 BT4_LENGTH = 49.25;
 BT4_TOP_DIAMETER = 23.21;
 BT4_BOTTOM_DIAMETER = 22.5;
+BT4_THREAD = (1 / 8) * 25.4;
 
 STROKE_LENGTH = 42; //Total stroke length in mm
 
@@ -123,9 +124,7 @@ module Forward_Power_Tube()
     VALVE_COLLAR_Z_LINE = O_RING_COLLAR_HEIGHT + POWER_TUBE_CHAMFER_THICKNESS;
     PISTON_HEAD_REST_Z_LINE = VALVE_COLLAR_Z_LINE + BT4_LENGTH;
     REAR_PISTON_COLLAR_Z_LINE = PISTON_HEAD_REST_Z_LINE + PISTON_HEAD_REST_THICKNESS;
-    
-    echo(REAR_PISTON_COLLAR_Z_LINE);
-    
+        
     difference()
     {
         union()
@@ -207,10 +206,8 @@ module Forward_Power_Tube()
         {
             torus(INTERFACE_O_RING_DIAMETER, INTERFACE_O_RING_THICKNESS);
         }        
-    }
-    
+    }    
 }
-
 
 module Power_Tube_Clamp(TRAPS)
 {
@@ -333,13 +330,11 @@ module Power_Tube_Clamp_Tray()
 
 module Power_Ram_Front_Cap()
 {
-    
     difference()
     {
         union()
         {
             POWER_RAM_FRONT_CAP_OD = POWER_RAM_OD + SWT;
-            echo(POWER_RAM_FRONT_CAP_OD);
             cylinder(d = POWER_RAM_FRONT_CAP_OD, h = SWT);
             
             //
@@ -364,6 +359,35 @@ module Power_Ram_Front_Cap()
         
     }
     
+}
+
+module Power_Ram_Rear_Cap()
+{
+    difference()
+    {
+        union()
+        {
+            POWER_RAM_FRONT_CAP_OD = POWER_RAM_OD + SWT;
+            cylinder(d = POWER_RAM_FRONT_CAP_OD, h = SWT);
+            
+            translate([0, 0, SWT])
+            {
+                square_torus(POWER_RAM_ID, POWER_RAM_WALL, SWT);
+            }            
+        }
+        
+        //Power Ram Pipe Groove
+        translate([0, 0, SWT - POWER_RAM_WALL])
+        {
+            square_torus(POWER_RAM_ID + SWT, POWER_RAM_WALL, POWER_RAM_WALL * 4);
+        }
+        
+        translate([0, 0, SWT + (SWT / 2)])
+        {
+            torus(POWER_RAM_ID + 1, POWER_RAM_O_RING_THICKNESS);
+        }
+        
+    }
 }
 
 
@@ -653,7 +677,8 @@ module Rear_Piston_Head()
 }
 
 //Rear_Piston_Head();
-Forward_Power_Tube();
+//Forward_Power_Tube();
 //Power_Tube_Clamp_Tray();
 //Dart_Pusher_Collar_Tray();
 //Power_Ram_Front_Cap();
+Power_Ram_Rear_Cap();
