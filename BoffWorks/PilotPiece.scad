@@ -76,7 +76,7 @@ POWER_RAM_OD = 32;
 POWER_RAM_WALL = 2;
 POWER_RAM_ID = POWER_RAM_OD - POWER_RAM_WALL * 2;
 POWER_RAM_O_RING_THICKNESS = 2;
-POWER_RAM_NUMBER_OF_O_RINGS = 1; //TO DO: Implement number of features
+POWER_RAM_NUMBER_OF_O_RINGS = 1; //TO DO: Implement number of O-Rings feature
 
 //Interface (Power Tube Clamp to Forward Power Tube) O Ring Dimensons
 INTERFACE_O_RING_THICKNESS = 1.5;

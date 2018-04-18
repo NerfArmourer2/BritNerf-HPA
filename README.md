@@ -10,11 +10,11 @@ Mandatory Feature List:
 > Short dart compatbility 
 > Semi-automatic
 > 3D printed system as far as possible
-> Scalable & parameterised parts
+> Scalable & parameterised parts (localisation yo!)
 > Flared magazine well
 > Screw in barrel
 > Ported and crowned barrel
-> Ram rod mount for barrel clearing
+> Ram rod mount for barrel clearing brush
 
 
 Optional & Push Feature List:
